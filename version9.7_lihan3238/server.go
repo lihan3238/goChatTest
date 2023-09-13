@@ -84,7 +84,7 @@ func (this *Server) Handler(conn net.Conn) {
 			//用户将收到的信息处理
 			user.DoMessage(msg)
 
-			//用户的任意消息，代表挡墙用户是活跃的
+			//用户的任意消息，代表当前用户是活跃的
 			isLive <- true
 		}
 	}()
@@ -95,7 +95,7 @@ func (this *Server) Handler(conn net.Conn) {
 		case <-isLive:
 			//当前用户活跃，充值定时器
 			//激活select，更新定时器
-		case <-time.After(time.Second * 60):
+		case <-time.After(time.Second * 300):
 			//已经超时
 			//将当前的User强制关闭
 			user.SendMsg("长时间未活跃，你被踢了")

@@ -12,6 +12,7 @@ type User struct {
 	C      chan string
 	conn   net.Conn
 	server *Server
+	Groups []*Group
 }
 
 // 创建一个用户的API
@@ -114,7 +115,94 @@ func (this *User) DoMessage(msg string) {
 		}
 		remoteUser.SendMsg(this.Name + "对您说：" + content)
 
+	} else if len(msg) > 12 && msg[:12] == "createGroup|" {
+		//消息格式：createGroup|group1
+		groupName := strings.Split(msg, "|")[1]
+		if groupName == "" {
+			this.SendMsg("消息格式不正确，请使用\"createGroup|group1\"格式。\n")
+			return
+		}
+		NewGroup(groupName).AddGroupUser(this)
+		this.SendMsg("创建群聊成功\n")
+	} else if len(msg) > 10 && msg[:10] == "joinGroup|" {
+		//消息格式：joinGroup|group1|张三
+		groupName := strings.Split(msg, "|")[1]
+		if groupName == "" {
+			this.SendMsg("消息格式不正确，请使用\"joinGroup|group1|张三\"格式。\n")
+			return
+		}
+		remoteName := strings.Split(msg, "|")[2]
+		if remoteName == "" {
+			this.SendMsg("消息格式不正确，请使用\"joinGroup|group1|张三\"格式。\n")
+			return
+		}
+		//2 根据用户名 得到对方user对象
+		remoteUser, ok := this.server.OnlineMap[remoteName]
+		if !ok {
+			this.SendMsg("该用户名不存在\n")
+			return
+		}
+		for _, group := range remoteUser.Groups {
+			if group.GroupName == groupName {
+				this.SendMsg("用户已经加入该群聊\n")
+				return
+			}
+		}
+		for i := 0; i < len(this.Groups); i++ {
+			if this.Groups[i].GroupName == groupName {
+				this.Groups[i].AddGroupUser(remoteUser)
+				this.SendMsg("加入群聊成功\n")
+				return
+			}
+		}
+		this.SendMsg("该群聊不存在\n")
+
+	} else if msg == "showGroup" {
+		for range this.Groups {
+			this.SendMsg("群聊名称：" + this.Groups[0].GroupName + "\n")
+		}
+
+	} else if len(msg) > 10 && msg[:10] == "groupChat|" {
+		//消息格式：groupChat|group1|你好呀
+		groupName := strings.Split(msg, "|")[1]
+		if groupName == "" {
+			this.SendMsg("消息格式不正确，请使用\"groupChat|group1|你好呀\"格式。\n")
+			return
+		}
+		content := strings.Split(msg, "|")[2]
+		if content == "" {
+			this.SendMsg("无效内容，请使用\"groupChat|group1|你好呀\"格式。\n")
+		}
+		for _, group := range this.Groups {
+			if group.GroupName == groupName {
+				for _, user := range group.GroupUsers {
+					user.SendMsg(this.Name + "对群聊" + groupName + "说：" + content)
+				}
+				return
+			}
+		}
+		this.SendMsg("该群聊不存在\n")
+
 	} else {
 		this.server.BroadCast(this, msg)
 	}
+}
+
+type Group struct {
+	GroupUsers []*User
+	GroupName  string
+	num        int
+}
+
+func NewGroup(groupName string) *Group {
+	group := &Group{
+		GroupName: groupName,
+	}
+	return group
+}
+
+func (this *Group) AddGroupUser(user *User) {
+	this.GroupUsers = append(this.GroupUsers, user)
+	this.num++
+	user.Groups = append(user.Groups, this)
 }

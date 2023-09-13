@@ -131,6 +131,79 @@ func (this *Client) PrivateChat() {
 
 }
 
+func (this *Client) GroupChat() {
+	sel := 0
+	fmt.Println(">>>>>请选择：")
+	fmt.Println("1.创建群")
+	fmt.Println("2.加入成员")
+	fmt.Println("3.群发消息")
+	fmt.Scanln(&sel)
+	switch sel {
+	case 1:
+		fmt.Println(">>>>>请输入群名称：")
+		var groupName string
+		fmt.Scanln(&groupName)
+		sendMsg := "createGroup|" + groupName + "\n"
+		_, err := this.conn.Write([]byte(sendMsg))
+		if err != nil {
+			println("conn.Write err:")
+			return
+		}
+	case 2:
+		fmt.Println("您的群聊列表如下：")
+		sendMsg := "showGroup\n"
+		_, err := this.conn.Write([]byte(sendMsg))
+		if err != nil {
+			println("conn.Write err:")
+			return
+		}
+		fmt.Println(">>>>>请输入群名称：")
+		var groupName string
+		fmt.Scanln(&groupName)
+		fmt.Println("在线用户列表如下：")
+		this.SelectUsers()
+		fmt.Println(">>>>>请输入要加入的用户：")
+		var userName string
+		fmt.Scanln(&userName)
+		sendMsg = "joinGroup|" + groupName + "|" + userName + "\n"
+		_, err = this.conn.Write([]byte(sendMsg))
+		if err != nil {
+			println("conn.Write err:")
+			return
+		}
+	case 3:
+		fmt.Println("您的群聊列表如下：")
+		sendMsg := "showGroup\n"
+		_, err := this.conn.Write([]byte(sendMsg))
+		if err != nil {
+			println("conn.Write err:")
+			return
+		}
+		fmt.Println(">>>>>请输入群名称：")
+		var groupName string
+		fmt.Scanln(&groupName)
+		fmt.Println(">>>>>请输入聊天内容,exit退出\n")
+		var chatMsg string
+		fmt.Scanln(&chatMsg)
+		for chatMsg != "exit" {
+			//发送给服务器
+
+			if len(chatMsg) != 0 {
+				sendMsg := "groupChat|" + groupName + "|" + chatMsg + "\n\n"
+				_, err := this.conn.Write([]byte(sendMsg))
+				if err != nil {
+					fmt.Println("conn.Write error:", err)
+					break
+				}
+
+			}
+			chatMsg = ""
+			fmt.Println(">>>>>请输入聊天内容,exit退出\n")
+			fmt.Scanln(&chatMsg)
+		}
+
+	}
+}
 func (this *Client) UpdateName() bool {
 	fmt.Println(">>>>>请输入用户名：")
 	fmt.Scanln(&this.Name)
@@ -164,7 +237,7 @@ func (this *Client) Run() {
 		case 3:
 			//群聊模式
 			fmt.Println("群聊模式...")
-
+			this.GroupChat()
 			//break
 
 		case 4:
